@@ -123,6 +123,7 @@ code{font:500 12px/1.4 var(--mono);background:var(--bg);border:1px solid var(--l
 .chips small{font-weight:400;opacity:.8}
 .teamrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .teamrow input{width:96px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.teamrow #teamName{width:88px} .teamrow #teamCode{width:62px}
 .teamrow .code{font:700 18px/1 var(--mono);letter-spacing:.12em;color:var(--side)}
 .brief{margin:0} .buy{margin:0;display:flex;flex-direction:column;gap:4px}
 .tl,.ifs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
@@ -532,8 +533,8 @@ function render() {
   $("you").innerHTML = `<span class="lbl">Your role on ${G.side} side</span><div class="chips">${ROLE_NAMES[G.side].map((r, i) => { const nm = namesFor(G.side, i).filter(x => x !== "you"); return `<button data-role="${i}" aria-pressed="${myRole === i}">${esc(r)}${nm.length ? `<small> ${esc(nm.join(", "))}</small>` : ""}</button>`; }).join("")}</div>`
     + (!syncOn ? "" : inTeam()
       ? `<div class="teamrow"><span class="lbl">Team</span><b class="code">${esc(S.team.code)}</b><span class="note">${S.team.host ? "You are the caller. Share this code." : roomSeen ? "Following the caller." : "Waiting for the caller."} ${Object.keys(MEMBERS || {}).length} connected.</span><button id="teamLeave">Leave</button></div>`
-      : `<div class="teamrow"><span class="lbl">Team</span><input id="teamName" value="${esc(S.team.name)}" placeholder="Your name" aria-label="Your name"><button id="teamCreate">Create team</button><input id="teamCode" placeholder="Code" aria-label="Team code" maxlength="8"><button id="teamJoin">Join</button>${teamMsg ? `<span class="note">${esc(teamMsg)}</span>` : ""}</div>`);
-  const youHome = pv ? $("youSide") : wide ? $("left") : $("playersHome"), detHome = wide ? $("left") : $("playersHome");
+      : `<div class="teamrow"><span class="lbl">Team</span><input id="teamName" value="${esc(S.team.name)}" placeholder="Name" aria-label="Your name"><button id="teamCreate">Create team</button><input id="teamCode" placeholder="Code" aria-label="Team code" maxlength="8"><button id="teamJoin">Join</button>${teamMsg ? `<span class="note">${esc(teamMsg)}</span>` : ""}</div>`);
+  const youHome = $("youSide"), detHome = wide ? $("left") : $("playersHome");
   if ($("playersSec").parentElement !== youHome) youHome.prepend($("playersSec"));
   if ($("detail").parentElement !== detHome) detHome.appendChild($("detail"));
   { const e = entry(S.sel), nm = [S.names[S.sel]].concat(namesFor(G.side, S.sel).filter(x => x !== "you")).filter(Boolean).join(", ");
