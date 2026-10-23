@@ -1006,8 +1006,8 @@ function nowFor(i, SIT) {
   const pl = playById(S.play), k = S.stage, b = posOf(i), live = livePos(i);
   const before = k > 0 ? pl.stages[k - 1].players[i] : null, a = live || (before ? (before.at || M.callouts[before.spot] || b) : b);
   const far = Math.hypot(b[0] - a[0], b[1] - a[1]) > 45, here = !!live && !far && Math.hypot(b[0] - a[0], b[1] - a[1]) < 30;
-  // with your utility known, the next throw is the first one not yet done; without it, the next one by the clock
-  const known = !!heldFor(i), us = stageThrows()[i], next = known ? us[0] : (us.find(u => u.s >= S.clock - 3) || us[us.length - 1]);
+  // the next throw: the first not yet done (when your utility is known) and not overdue
+  const next = upcoming(stageThrows()[i])[0];
   const u = next ? { text: `Throw ${ART[next.type] || next.type} at ${next.toName}${next.fromName && next.fromName !== e.spot ? " from " + next.fromName : ""}`, lid: next.lid, s: next.s } : null;
   return { head: `${far ? (zoneAt(a) !== zoneAt(b) ? (G.side === "CT" ? "Rotate to" : "Move to") : "Go to") : "Hold"} ${e.spot}`, util: u, a, b, live: !!live, here };
 }
@@ -1015,11 +1015,16 @@ function nowFor(i, SIT) {
 // where to stand (Mxx_s: the crosshair on the spot) and every lineup from there (Mxx: the crosshair on the aim point),
 // how to throw it and with which mouse button. Pictures come from Capture Lineups.bat; without one, a small map.
 const CLICK = { left: "left click", middle: "left and right click together", right: "right click" };
+// A throw is taken as missed OVERDUE seconds after its time, so the next one shows in good time to get ready for it
+// (Ryan, 23 Oct: a lineup stayed up until the next stage, long after it should have gone in).
+const OVERDUE = 8;
+const upcoming = us => (us || []).filter(u => !(S.run && u.s != null && S.clock > u.s + OVERDUE));
+const utilKey = SIT => "|" + utilThrows(S.sel, SIT).map(u => u.lid || u.toName).join(",");     // the helper's list, to redraw it when it moves on
 function utilThrows(i, SIT) {
   if (SIT) { const t = SIT.to[i], u = t && t.util;        // after a call: the one throw the situation gives
     return u ? [Object.assign({}, u, { toName: u.to, fromName: u.frm, frm: M.callouts[u.frm], to: M.callouts[u.to] })] : []; }
   const pl = playById(S.play);
-  return (stageThrows()[i] || []).concat(...pl.stages.slice(S.stage + 1).map(s => s.players[i].util || [])).filter(u => u.toName);
+  return upcoming((stageThrows()[i] || []).concat(...pl.stages.slice(S.stage + 1).map(s => s.players[i].util || [])).filter(u => u.toName));
 }
 function utilHelper(i, SIT) {
   const us = utilThrows(i, SIT), body = $("utilBody"), mine = i === S.role[G.side];
@@ -1250,7 +1255,7 @@ function render() {
   } else if (late) sitHtml = `<p class="call"><b>Time</b>${esc(lateWords)}</p>`;
   sitHtml = readHtml + sitHtml;
   // one line per player, the same words as their own Now box
-  const NOW = [0, 1, 2, 3, 4].map(i => nowFor(i, SIT)); nowSig = NOW.map(nowKey).join("|");
+  const NOW = [0, 1, 2, 3, 4].map(i => nowFor(i, SIT)); nowSig = NOW.map(nowKey).join("|") + utilKey(SIT);
   const seen = situation().seen;
   // the default finishes with the best late execute on each site (the one the team has the utility for)
   const fin = pl.id === "t-default" ? ["A", "B"].map(s => execFor(s, "late")).filter(Boolean).map(p => p.id) : pl.next.filter(playById);
@@ -1329,7 +1334,7 @@ function tick() {
   if (!playById(S.play)) return;
   S.clock = Math.max(0, Math.floor((Date.now() - S.t0) / 1000));
   const i = S.hold ? S.stage : autoStage(), busy = /INPUT|TEXTAREA/.test((document.activeElement || {}).tagName || "");
-  const nowMoved = [0, 1, 2, 3, 4].map(k => nowKey(nowFor(k, SITMEMO))).join("|") !== nowSig;       // the next throw came up
+  const nowMoved = [0, 1, 2, 3, 4].map(k => nowKey(nowFor(k, SITMEMO))).join("|") + utilKey(SITMEMO) !== nowSig;       // the next throw came up
   const dropMoved = (G.phase === "live" ? droppedZone() : null) !== ((SITMEMO && SITMEMO.st.drop) || null);   // bomb dropped or picked up
   if ((i !== S.stage || nowMoved || dropMoved) && !busy) { S.stage = i; render(); } else { $("phase").textContent = phaseText(); save(); }
 }
